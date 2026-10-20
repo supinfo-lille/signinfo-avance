@@ -1,8 +1,8 @@
 // BONUS — Évaluer le modèle, mémoriser les records, jouer un son
-import { predire } from "./knn.js";
+import { predire, K, DISTANCE_MAX } from "./knn.js";
 
 // Validation « leave-one-out » : chaque exemple est caché puis prédit à partir des autres
-export function evaluer(exemples) {
+export function evaluer(exemples, k = K, distanceMax = DISTANCE_MAX) {
   const parLettre = {};
   const confusions = {};
   let bons = 0, total = 0;
@@ -10,7 +10,7 @@ export function evaluer(exemples) {
     parLettre[lettre] = { bons: 0, total: 0 };
     liste.forEach((ex, i) => {
       const autres = { ...exemples, [lettre]: liste.filter((_, j) => j !== i) };
-      const p = predire(autres, ex);
+      const p = predire(autres, ex, k, distanceMax);
       const trouve = p?.lettre ?? "?";
       parLettre[lettre].total++;
       total++;

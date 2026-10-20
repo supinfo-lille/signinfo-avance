@@ -5,6 +5,7 @@ export class Dataset {
   constructor() {
     this.exemples = {};  // { "A": [[63 nombres], [63 nombres], ...], "B": [...] }
     this.vignettes = {}; // { "A": "data:image/jpeg;base64,..." } photo de référence
+    this.gestes = {};    // BONUS MOUVEMENT : { "J": [[64 nombres], ...], "Z": [...] }
     this.charger();
   }
 
@@ -12,6 +13,16 @@ export class Dataset {
   ajouter(lettre, vecteur) {
     if (!this.exemples[lettre]) this.exemples[lettre] = [];
     this.exemples[lettre].push(vecteur.map((n) => Math.round(n * 10000) / 10000));
+  }
+
+  // BONUS MOUVEMENT : les gestes sont rangés à part (vecteurs de 64 nombres, pas 63)
+  ajouterGeste(lettre, vecteur) {
+    if (!this.gestes[lettre]) this.gestes[lettre] = [];
+    this.gestes[lettre].push(vecteur);
+  }
+
+  nombreGestes(lettre) {
+    return this.gestes[lettre]?.length ?? 0;
   }
 
   nombre(lettre) {
@@ -25,19 +36,21 @@ export class Dataset {
   effacerLettre(lettre) {
     delete this.exemples[lettre];
     delete this.vignettes[lettre];
+    delete this.gestes[lettre];
     this.sauver();
   }
 
   toutEffacer() {
     this.exemples = {};
     this.vignettes = {};
+    this.gestes = {};
     this.sauver();
   }
 
   // localStorage : les données restent dans le navigateur même après rechargement
   sauver() {
     try {
-      localStorage.setItem(CLE_STOCKAGE, JSON.stringify({ exemples: this.exemples, vignettes: this.vignettes }));
+      localStorage.setItem(CLE_STOCKAGE, JSON.stringify({ exemples: this.exemples, vignettes: this.vignettes, gestes: this.gestes }));
     } catch (e) {
       console.warn("Sauvegarde impossible (stockage plein ?)", e);
     }
@@ -50,6 +63,7 @@ export class Dataset {
       const donnees = JSON.parse(texte);
       this.exemples = donnees.exemples ?? {};
       this.vignettes = donnees.vignettes ?? {};
+      this.gestes = donnees.gestes ?? {};
     } catch (e) {
       console.warn("Lecture des données impossible", e);
     }
@@ -57,7 +71,7 @@ export class Dataset {
 
   // --- Fourni : export / import pour partager un jeu de données entre postes ---
   exporter() {
-    const blob = new Blob([JSON.stringify({ exemples: this.exemples, vignettes: this.vignettes })], { type: "application/json" });
+    const blob = new Blob([JSON.stringify({ exemples: this.exemples, vignettes: this.vignettes, gestes: this.gestes })], { type: "application/json" });
     const lien = document.createElement("a");
     lien.href = URL.createObjectURL(blob);
     lien.download = "signinfo-donnees.json";
@@ -69,6 +83,9 @@ export class Dataset {
     const donnees = JSON.parse(await fichier.text());
     for (const [lettre, liste] of Object.entries(donnees.exemples ?? {})) {
       this.exemples[lettre] = [...(this.exemples[lettre] ?? []), ...liste];
+    }
+    for (const [lettre, liste] of Object.entries(donnees.gestes ?? {})) {
+      this.gestes[lettre] = [...(this.gestes[lettre] ?? []), ...liste];
     }
     Object.assign(this.vignettes, donnees.vignettes ?? {});
     this.sauver();

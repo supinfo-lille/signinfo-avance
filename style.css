@@ -94,3 +94,7 @@ input[type="text"] { flex: 1 1 10rem; padding: .6rem .9rem; border-radius: 10px;
 .eval-table th, .eval-table td { text-align: left; padding: .35rem .5rem; border-bottom: 1px solid var(--trait); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Bonus mouvement : tracé de référence pour J et Z */
+.reference .touche svg { width: 100%; aspect-ratio: 1; background: #fff; border-radius: 6px; }
+.cible-ref img { background: #fff; }

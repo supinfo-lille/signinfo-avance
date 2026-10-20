@@ -17,7 +17,8 @@ export function distance(a, b) {
 }
 
 // exemples : { "A": [[...], ...], "B": [...] }
-export function predire(exemples, vecteur, k = K) {
+// distanceMax : seuil de rejet (les gestes du bonus mouvement en utilisent un autre)
+export function predire(exemples, vecteur, k = K, distanceMax = DISTANCE_MAX) {
   const voisins = [];
   for (const [lettre, liste] of Object.entries(exemples)) {
     for (const ex of liste) voisins.push({ lettre, d: distance(vecteur, ex) });
@@ -26,7 +27,7 @@ export function predire(exemples, vecteur, k = K) {
 
   voisins.sort((a, b) => a.d - b.d);
   const proches = voisins.slice(0, k);
-  if (proches[0].d > DISTANCE_MAX) return null;
+  if (proches[0].d > distanceMax) return null;
 
   const votes = {};
   for (const v of proches) votes[v.lettre] = (votes[v.lettre] ?? 0) + 1;
