@@ -1,0 +1,96 @@
+/* SignINFO — palette pensée pour la lisibilité (Atkinson Hyperlegible + Lexend) */
+:root {
+  --encre: #14213D;
+  --encre-douce: #4A5878;
+  --fond: #EEF2F8;
+  --surface: #FFFFFF;
+  --signe: #5B3DF5;      /* violet : actions, lettre en cours */
+  --valide: #0F9F78;     /* menthe : lettre validée */
+  --alerte: #C2410C;
+  --trait: #D5DCE8;
+  --rayon: 14px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+  color: var(--encre);
+  background: var(--fond);
+  line-height: 1.5;
+}
+h1, h2, h3, .mot, #lettre-cible, #prediction-lettre, .btn, .chrono { font-family: "Lexend", system-ui, sans-serif; }
+
+/* En-tête collé en haut : le logo SUPINFO reste toujours visible */
+.entete { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.25rem; padding: 1rem 2rem; background: var(--fond); border-bottom: 1px solid var(--trait); margin-bottom: 1.5rem; }
+.logo-ecole { display: block; flex: none; line-height: 0; }
+.logo-ecole img { width: 56px; height: 56px; border-radius: 8px; }
+.logo { margin: 0; font-size: 1.9rem; font-weight: 800; letter-spacing: -.02em; }
+.accroche { margin: 0; color: var(--encre-douce); flex: 1 1 18rem; }
+.onglets { display: flex; gap: .25rem; background: var(--surface); padding: .25rem; border-radius: 999px; border: 1px solid var(--trait); }
+.onglet { border: 0; background: none; padding: .5rem 1rem; border-radius: 999px; font: 500 .95rem "Lexend", sans-serif; color: var(--encre-douce); cursor: pointer; }
+.onglet.actif { background: var(--encre); color: #fff; }
+
+.grille { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 1.5rem; padding: 0 2rem 2rem; }
+@media (max-width: 900px) { .grille { grid-template-columns: 1fr; padding: 0 1rem 1rem; } .entete { padding: 1rem; } }
+
+.scene { display: flex; flex-direction: column; gap: .75rem; }
+.video-cadre { position: relative; aspect-ratio: 4 / 3; background: var(--encre); border-radius: var(--rayon); overflow: hidden; }
+/* On affiche l'image en miroir : c'est plus naturel, comme dans une glace */
+#webcam, #calque { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.etat { position: absolute; top: .75rem; left: .75rem; margin: 0; padding: .25rem .75rem; border-radius: 999px; background: rgba(255,255,255,.92); font-size: .9rem; }
+.etat.erreur { background: #FFF1EA; color: var(--alerte); }
+.prediction { position: absolute; right: .75rem; bottom: .75rem; display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: .5rem .9rem; background: rgba(255,255,255,.92); border-radius: var(--rayon); min-width: 5rem; }
+#prediction-lettre { font-size: 2.6rem; font-weight: 800; line-height: 1; }
+.jauge { display: block; width: 4rem; height: 6px; border-radius: 3px; background: var(--trait); overflow: hidden; }
+#prediction-jauge { display: block; height: 100%; width: 0; background: var(--signe); transition: width .15s; }
+
+.panneau { background: var(--surface); border: 1px solid var(--trait); border-radius: var(--rayon); padding: 1.5rem; }
+.panneau h2 { margin: 0 0 .5rem; font-size: 1.35rem; }
+.panneau h3 { margin: 1.5rem 0 .5rem; font-size: 1rem; }
+.cache { display: none; }
+.aide { margin: 0 0 1rem; color: var(--encre-douce); max-width: 60ch; }
+
+.alphabet { display: grid; grid-template-columns: repeat(auto-fill, minmax(3.4rem, 1fr)); gap: .4rem; }
+.touche { position: relative; display: flex; flex-direction: column; align-items: center; gap: .1rem; padding: .4rem .2rem; border: 1px solid var(--trait); border-radius: 10px; background: var(--fond); cursor: pointer; font: 700 1.15rem "Lexend", sans-serif; color: var(--encre); }
+.touche small { font: 400 .72rem "Atkinson Hyperlegible", sans-serif; color: var(--encre-douce); }
+.touche.choisie { border-color: var(--signe); box-shadow: 0 0 0 2px var(--signe); background: #fff; }
+.touche.prete { background: #E6F7F1; }
+.touche.dynamique::after { content: "↺"; position: absolute; top: 2px; right: 5px; font-size: .7rem; color: var(--alerte); }
+.reference .touche { cursor: default; padding: .25rem; }
+.reference img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; }
+
+.actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.actions.secondaire { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--trait); }
+.btn { display: inline-flex; align-items: center; padding: .6rem 1.1rem; border-radius: 10px; border: 1px solid var(--trait); background: #fff; color: var(--encre); font-weight: 500; font-size: .95rem; cursor: pointer; }
+.btn:hover { border-color: var(--encre-douce); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-principal { background: var(--signe); border-color: var(--signe); color: #fff; }
+.btn-principal:hover { background: #4A2EE0; }
+.btn-danger { color: var(--alerte); }
+:focus-visible { outline: 3px solid var(--signe); outline-offset: 2px; }
+input[type="text"] { flex: 1 1 10rem; padding: .6rem .9rem; border-radius: 10px; border: 1px solid var(--trait); font: 700 1.05rem "Lexend", sans-serif; text-transform: uppercase; }
+.statut { min-height: 1.5em; margin: .5rem 0 0; color: var(--encre-douce); }
+.statut.alerte { color: var(--alerte); }
+
+.mot { display: flex; flex-wrap: wrap; gap: .3rem; margin: 1.25rem 0; font-size: 2rem; font-weight: 800; }
+.mot span { width: 2.6rem; text-align: center; border-bottom: 4px solid var(--trait); color: var(--trait); }
+.mot .faite { color: var(--valide); border-color: var(--valide); }
+.mot .en-cours { color: var(--signe); border-color: var(--signe); }
+
+.cible { display: flex; align-items: center; gap: 1.5rem; }
+/* L'anneau se remplit pendant que l'on maintient le bon signe */
+.anneau { --p: 0; flex: none; display: grid; place-items: center; width: 9rem; height: 9rem; border-radius: 50%;
+  background: conic-gradient(var(--signe) calc(var(--p) * 1turn), var(--trait) 0); }
+.anneau::before { content: ""; grid-area: 1 / 1; width: 7.6rem; height: 7.6rem; border-radius: 50%; background: var(--surface); }
+#lettre-cible { grid-area: 1 / 1; z-index: 1; font-size: 4.5rem; font-weight: 800; }
+.anneau.reussi { background: var(--valide); }
+.cible-ref { display: flex; flex-direction: column; gap: .5rem; }
+.cible-ref img { width: 6rem; height: 6rem; object-fit: cover; border-radius: 10px; border: 1px solid var(--trait); }
+.cible-ref p { margin: 0; max-width: 28ch; }
+.chrono { margin: 1rem 0 0; font-size: 1.3rem; font-weight: 700; }
+
+.eval-score { font: 800 2.5rem "Lexend", sans-serif; margin: 1rem 0 .25rem; }
+.eval-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: .95rem; }
+.eval-table th, .eval-table td { text-align: left; padding: .35rem .5rem; border-bottom: 1px solid var(--trait); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

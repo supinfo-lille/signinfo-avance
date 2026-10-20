@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SignINFO – l'alphabet de la LSF avec sa webcam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="entete">
+    <a class="logo-ecole" href="https://www.supinfo.com" target="_blank" rel="noopener">
+      <img src="assets/logo-supinfo.png" alt="SUPINFO" width="56" height="56">
+    </a>
+    <h1 class="logo">SignINFO</h1>
+    <p class="accroche">Épelez des mots en alphabet LSF, l'IA vérifie vos signes.</p>
+    <nav class="onglets" aria-label="Modes">
+      <button class="onglet actif" data-onglet="entrainer">Entraîner l'IA</button>
+      <button class="onglet" data-onglet="jouer">Jouer</button>
+      <button class="onglet" data-onglet="evaluer">Évaluer (bonus)</button>
+    </nav>
+  </header>
+
+  <main class="grille">
+    <!-- La scène : webcam + squelette de la main + prédiction -->
+    <section class="scene" aria-label="Webcam">
+      <div class="video-cadre">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="calque"></canvas>
+        <p id="etat-camera" class="etat">Caméra éteinte</p>
+        <div class="prediction" aria-live="polite">
+          <span id="prediction-lettre">–</span>
+          <span class="jauge"><span id="prediction-jauge"></span></span>
+        </div>
+      </div>
+      <button id="btn-camera" class="btn btn-principal">Démarrer la caméra</button>
+    </section>
+
+    <!-- Mode 1 : entraîner l'IA -->
+    <section id="panneau-entrainer" class="panneau" aria-label="Entraîner l'IA">
+      <h2>Apprenez chaque lettre à l'IA</h2>
+      <p class="aide">Choisissez une lettre, faites le signe face à la caméra, puis enregistrez. 40 exemples par lettre suffisent pour commencer ; bougez un peu la main pendant l'enregistrement.</p>
+      <div id="alphabet-entrainer" class="alphabet"></div>
+      <div class="actions">
+        <button id="btn-enregistrer" class="btn btn-principal">Enregistrer 40 exemples de « A »</button>
+        <button id="btn-effacer-lettre" class="btn">Effacer cette lettre</button>
+      </div>
+      <p id="etat-enregistrement" class="statut"></p>
+      <div class="actions secondaire">
+        <button id="btn-exporter" class="btn">Exporter les données</button>
+        <label class="btn">Importer des données<input id="fichier-import" type="file" accept="application/json" hidden></label>
+        <button id="btn-tout-effacer" class="btn btn-danger">Tout effacer</button>
+      </div>
+      <p id="resume-dataset" class="statut"></p>
+    </section>
+
+    <!-- Mode 2 : jouer -->
+    <section id="panneau-jouer" class="panneau cache" aria-label="Jouer">
+      <h2>Épelez un mot</h2>
+      <div class="actions">
+        <input id="saisie-mot" type="text" maxlength="12" placeholder="Votre mot, ex. LILLE" autocomplete="off">
+        <button id="btn-lancer" class="btn btn-principal">Lancer</button>
+        <button id="btn-hasard" class="btn">Mot au hasard</button>
+      </div>
+      <p id="alerte-mot" class="statut alerte"></p>
+      <div id="mot" class="mot" aria-live="polite"></div>
+      <div class="cible">
+        <div class="anneau" id="anneau">
+          <span id="lettre-cible">?</span>
+        </div>
+        <div class="cible-ref">
+          <img id="vignette-cible" alt="" hidden>
+          <p id="consigne">Choisissez un mot pour commencer.</p>
+          <button id="btn-passer" class="btn" disabled>Passer cette lettre</button>
+        </div>
+      </div>
+      <p id="chrono" class="chrono">0,0 s</p>
+      <p id="record" class="statut"></p>
+      <h3>L'alphabet de référence</h3>
+      <div id="alphabet-reference" class="alphabet reference"></div>
+    </section>
+
+    <!-- Bonus : évaluer le modèle -->
+    <section id="panneau-evaluer" class="panneau cache" aria-label="Évaluer le modèle">
+      <h2>Votre IA est-elle fiable ?</h2>
+      <p class="aide">On cache chaque exemple à l'IA, on lui demande de le reconnaître à partir des autres, et on compte les réussites (validation « leave-one-out »).</p>
+      <button id="btn-evaluer" class="btn btn-principal">Lancer l'évaluation</button>
+      <div id="resultat-evaluation"></div>
+    </section>
+  </main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
