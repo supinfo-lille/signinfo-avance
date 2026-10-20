@@ -1,18 +1,35 @@
-// ÉTAPE 4 — Classification par k plus proches voisins (KNN), sans bibliothèque
+// ÉTAPE 4 — Reconnaître une lettre avec les k plus proches voisins (KNN)
+//
+// Idée : on compare le signe actuel à TOUS les exemples enregistrés,
+// on garde les k plus ressemblants, et chacun « vote » pour sa lettre.
 
 export const K = 5;
-export const DISTANCE_MAX = 1.5; // seuil de rejet : au-delà, aucune lettre connue
+export const DISTANCE_MAX = 1.5; // au-delà, le signe ne ressemble à rien de connu
 
-// Distance euclidienne entre deux vecteurs de même longueur
+// Distance euclidienne entre deux vecteurs de 63 nombres
 export function distance(a, b) {
-  // TODO
-  return 0;
+  let somme = 0;
+  for (let i = 0; i < a.length; i++) {
+    const d = a[i] - b[i];
+    somme += d * d;
+  }
+  return Math.sqrt(somme);
 }
 
-// exemples : { "A": [[...63 nombres], ...], ... }
-// Renvoie { lettre, confiance } (confiance = part des k voisins qui ont voté pour la lettre),
-// ou null s'il y a moins de k exemples ou si le plus proche voisin est au-delà de DISTANCE_MAX.
+// exemples : { "A": [[...], ...], "B": [...] }
 export function predire(exemples, vecteur, k = K) {
-  // TODO
-  return null;
+  const voisins = [];
+  for (const [lettre, liste] of Object.entries(exemples)) {
+    for (const ex of liste) voisins.push({ lettre, d: distance(vecteur, ex) });
+  }
+  if (voisins.length < k) return null;
+
+  voisins.sort((a, b) => a.d - b.d);
+  const proches = voisins.slice(0, k);
+  if (proches[0].d > DISTANCE_MAX) return null;
+
+  const votes = {};
+  for (const v of proches) votes[v.lettre] = (votes[v.lettre] ?? 0) + 1;
+  const [lettre, nbVotes] = Object.entries(votes).sort((a, b) => b[1] - a[1])[0];
+  return { lettre, confiance: nbVotes / k };
 }
