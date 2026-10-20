@@ -1,28 +1,58 @@
-// ÉTAPE 1 — Webcam + détection de la main
-// Documentation : https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker/web_js
+// ÉTAPE 1 — Webcam + détection de la main avec MediaPipe Hand Landmarker
 import { HandLandmarker, FilesetResolver, DrawingUtils } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 
 const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
 const MODELE = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
 
-// Renvoie un HandLandmarker prêt à analyser un flux vidéo (une main). Prévoir un repli CPU si le GPU échoue.
+// Charge le modèle de détection de la main (une seule main suffit pour l'alphabet)
 export async function creerDetecteur() {
-  // TODO
-  throw new Error("Étape 1 à compléter : creerDetecteur() dans js/camera.js");
+  const vision = await FilesetResolver.forVisionTasks(WASM);
+  const options = (delegate) => ({
+    baseOptions: { modelAssetPath: MODELE, delegate },
+    runningMode: "VIDEO",
+    numHands: 1,
+  });
+  try {
+    return await HandLandmarker.createFromOptions(vision, options("GPU"));
+  } catch (e) {
+    console.warn("GPU indisponible, passage au CPU", e);
+    return await HandLandmarker.createFromOptions(vision, options("CPU"));
+  }
 }
 
-// Branche la webcam (640 × 480, caméra frontale) sur l'élément <video> et attend qu'elle joue.
+// Demande l'accès à la webcam et branche le flux sur la balise <video>
 export async function demarrerWebcam(video) {
-  // TODO
+  const flux = await navigator.mediaDevices.getUserMedia({
+    video: { width: 640, height: 480, facingMode: "user" },
+    audio: false,
+  });
+  video.srcObject = flux;
+  await new Promise((ok) => (video.onloadedmetadata = ok));
+  await video.play();
 }
 
-// Analyse chaque NOUVELLE image de la vidéo et passe le résultat à surResultat(resultat).
+// Analyse chaque nouvelle image de la vidéo et transmet le résultat
 export function lancerBoucle(video, detecteur, surResultat) {
-  // TODO
+  let dernierTemps = -1;
+  function tour() {
+    if (video.currentTime !== dernierTemps) {
+      dernierTemps = video.currentTime;
+      const resultat = detecteur.detectForVideo(video, performance.now());
+      surResultat(resultat);
+    }
+    requestAnimationFrame(tour);
+  }
+  tour();
 }
 
-// Renvoie une fonction dessiner(resultat) qui trace le squelette de la main sur ctx.
+// Dessine le squelette de la main (21 points + leurs liaisons) sur le canvas
 export function creerDessinateur(ctx) {
-  // TODO
-  return function dessiner(resultat) {};
+  const outils = new DrawingUtils(ctx);
+  return function dessiner(resultat) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    for (const points of resultat.landmarks) {
+      outils.drawConnectors(points, HandLandmarker.HAND_CONNECTIONS, { color: "#2EE6B0", lineWidth: 4 });
+      outils.drawLandmarks(points, { color: "#FFFFFF", fillColor: "#5B3DF5", lineWidth: 2, radius: 5 });
+    }
+  };
 }
