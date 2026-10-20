@@ -1,5 +1,4 @@
 // BONUS MOUVEMENT — Reconnaître J et Z, les lettres qui se tracent dans l'air
-// À implémenter : M1, M2, M3. Le reste est fourni.
 //
 // Idée : au lieu d'une image, on enregistre une TRAJECTOIRE (le chemin du bout
 // des doigts pendant le geste), on la transforme en une liste de nombres de
@@ -32,19 +31,43 @@ export function longueurTrace(trace) {
   return l;
 }
 
-// --- Étape M1 : rééchantillonner un tracé [{x, y}, ...] en n points également espacés le long du chemin ---
+// --- Étape M1 : rééchantillonner une trajectoire en n points également espacés ---
+// Un geste lent donne 60 positions, un geste rapide 15 : pour les comparer,
+// on les ramène toutes au même nombre de points, répartis le long du tracé.
 export function reechantillonner(trace, n = NB_POINTS) {
-  // TODO
-  return [];
+  const cumul = [0];
+  for (let i = 1; i < trace.length; i++)
+    cumul.push(cumul[i - 1] + Math.hypot(trace[i].x - trace[i - 1].x, trace[i].y - trace[i - 1].y));
+  const total = cumul.at(-1) || 1;
+  const resultat = [];
+  for (let k = 0; k < n; k++) {
+    const cible = (k / (n - 1)) * total;
+    let i = cumul.findIndex((c) => c >= cible);
+    if (i <= 0) i = 1;
+    const segment = cumul[i] - cumul[i - 1] || 1;
+    const t = Math.min(1, (cible - cumul[i - 1]) / segment);
+    resultat.push({
+      x: trace[i - 1].x + t * (trace[i].x - trace[i - 1].x),
+      y: trace[i - 1].y + t * (trace[i].y - trace[i - 1].y),
+    });
+  }
+  return resultat;
 }
 
-// --- Étape M2 : geste brut → vecteur de 64 nombres ---
-// geste = { index: [{x, y}], auriculaire: [{x, y}], taille, ratio, miroir } (positions brutes, 0 à 1).
-// Le vecteur doit être indépendant de l'endroit où le geste est fait, de la taille de la main,
-// de la vitesse du geste et de la main utilisée.
+// --- Étape M2 : transformer les deux tracés (index + auriculaire) en un vecteur ---
+// Comme pour les lettres fixes : départ à (0, 0), divisé par la taille de la main,
+// main gauche retournée. 2 doigts × 16 points × 2 coordonnées = 64 nombres.
 export function vecteurDuGeste(geste) {
-  // TODO
-  return [];
+  const vecteur = [];
+  for (const brut of [geste.index, geste.auriculaire]) {
+    const depart = brut[0];
+    const trace = brut.map((p) => ({
+      x: (geste.miroir * (p.x - depart.x) * geste.ratio) / geste.taille,
+      y: (p.y - depart.y) / geste.taille,
+    }));
+    for (const p of reechantillonner(trace)) vecteur.push(Math.round(p.x * 1e4) / 1e4, Math.round(p.y * 1e4) / 1e4);
+  }
+  return vecteur;
 }
 
 // --- Fourni : la main est-elle entièrement visible ? ---
@@ -55,11 +78,11 @@ export function mainVisible(points) {
 }
 
 // --- Étape M3 : découper le flux vidéo en gestes ---
-// Contraintes : ignorer le tremblement de MediaPipe ; ne pas prendre l'entrée de la main dans
-// l'image ni le retour en position de départ pour un geste ; annuler un geste si la main sort,
-// même partiellement, de l'image (incrémenter this.annulations). La propriété etat
-// ("attente", "pret", "trace") et this.enCours ({ index, auriculaire }) sont lus par main.js
-// pour l'affichage. Les constantes en haut du fichier sont des valeurs de départ raisonnables.
+// Trois états :
+//   "attente" : la main vient d'apparaître ou de finir un geste, on attend qu'elle s'immobilise ;
+//   "pret"    : la main est immobile en position de départ, le prochain mouvement est un geste ;
+//   "trace"   : le geste est en cours, il se termine quand la main s'immobilise à nouveau.
+// Si la main sort de l'image pendant le tracé, le geste est annulé (pas de tracé tronqué).
 export class DetecteurGeste {
   constructor() {
     this.annulations = 0; // nombre de gestes annulés (main sortie de l'image)
@@ -79,9 +102,58 @@ export class DetecteurGeste {
     return this.pret ? "pret" : "attente";
   }
 
-  // Appelée à chaque image (t en secondes) ; renvoie { vecteur, duree, longueur } quand un geste se termine
+  // Appelée à chaque image ; renvoie { vecteur, duree, longueur } quand un geste se termine
   mettreAJour(points, cote, ratio, t) {
-    // TODO
+    // 1. Main absente ou coupée par le bord : on annule tout et on repart de zéro
+    if (!points || !mainVisible(points)) {
+      if (this.enCours) this.annulations++;
+      this.reinitialiser();
+      return null;
+    }
+    const taille = tailleMain(points, ratio);
+    const index = points[BOUT_INDEX], auriculaire = points[BOUT_AURICULAIRE];
+    const dtImage = this.historique.length ? t - this.historique.at(-1).t : 0;
+
+    // 2. Vitesse mesurée sur une petite fenêtre : le léger tremblement de MediaPipe
+    //    s'annule, seul un vrai déplacement compte.
+    this.historique.push({ t, index, auriculaire });
+    while (this.historique.length > 2 && t - this.historique[0].t > FENETRE) this.historique.shift();
+    const ancien = this.historique[0];
+    let vitesse = 0;
+    if (ancien.t < t) {
+      const d = (a, b) => Math.hypot((a.x - b.x) * ratio, a.y - b.y);
+      vitesse = Math.max(d(index, ancien.index), d(auriculaire, ancien.auriculaire)) / taille / (t - ancien.t);
+    }
+    this.calme = vitesse < VITESSE_FIN ? this.calme + dtImage : 0;
+
+    if (!this.enCours) {
+      // 3. Attente : la main doit d'abord rester immobile (position de départ)
+      if (!this.pret) {
+        if (t >= this.pauseJusqua && this.calme >= DUREE_ARMEMENT) this.pret = true;
+        return null;
+      }
+      // 4. Prêt : le premier vrai mouvement démarre le geste
+      if (vitesse > VITESSE_DEBUT) {
+        this.enCours = {
+          debut: ancien.t, fin: t, taille, ratio,
+          miroir: cote === "Left" ? -1 : 1,
+          index: this.historique.map((h) => h.index),
+          auriculaire: this.historique.map((h) => h.auriculaire),
+        };
+        this.calme = 0;
+      }
+      return null;
+    }
+
+    // 5. Tracé en cours : on enregistre, et on termine quand la main s'immobilise
+    this.enCours.index.push(index);
+    this.enCours.auriculaire.push(auriculaire);
+    this.enCours.fin = t;
+    if (this.calme >= DUREE_CALME || t - this.enCours.debut > DUREE_MAX) {
+      this.pret = false;
+      this.pauseJusqua = t + PAUSE_APRES_GESTE;
+      return this.terminer();
+    }
     return null;
   }
 
